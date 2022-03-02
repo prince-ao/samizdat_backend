@@ -1,0 +1,22 @@
+{
+  "name": "samizdat_backend",
+  "version": "1.0.0",
+  "main": "src/index.ts",
+  "scripts": {
+    "start": "ts-node src",
+    "hot-start": "nodemon --exec 'yarn start' --watch 'src/**/*' -e ts,tsx",
+    "build": "tsc"
+  },
+  "dependencies": {
+    "axios": "^0.26.0",
+    "cheerio": "^1.0.0-rc.10",
+    "cors": "^2.8.5",
+    "express": "^4.17.3",
+    "nodemon": "^2.0.15"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.12",
+    "@types/express": "^4.17.13",
+    "@types/nodemon": "^1.19.1"
+  }
+}
