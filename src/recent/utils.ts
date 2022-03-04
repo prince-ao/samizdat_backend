@@ -1,5 +1,7 @@
 import axios from "axios";
-import cheerio, { CheerioAPI } from "cheerio";
+import cheerio from "cheerio";
+import net from 'net';
+import http from 'http'
 
 export interface scrapedData {
   id: string
@@ -12,16 +14,22 @@ export interface scrapedData {
   size: string;
   pages: string;
   link: string;
+  image: string
 }
 
 const domain = "http://libgen"
+const libraryDomain = "http://library.lol/"
 const websites = [`${domain}.rs/`, `${domain}.is/`, `${domain}.st/`]
 
 const getPage: () => Promise<any> = async () => {
   let i = 0
   do{
-    const response = await axios.get(`${websites[i]}search.php?mode=last`)
-    if(response.status < 400) return response.data
+    try{
+      const response = await axios.get(`${websites[i]}search.php?mode=last`)
+      if(response.status < 400) return response.data
+    }catch(e){
+      console.log(`there is an error with ${websites[i]}`)
+    }
     if(i === 3){
       return "No Data"
     }
@@ -29,7 +37,12 @@ const getPage: () => Promise<any> = async () => {
   }while(1);
 }
 
-const getAuthors = ($: CheerioAPI) => "a"
+const wasteOfTime = (c:number) => {
+  let a =0;
+  for(let i = 0; i < c; i++){
+    a += i;
+  }
+}
 
 const getRecent = async () => {
   const data = await getPage();
@@ -44,7 +57,8 @@ const getRecent = async () => {
     format: "",
     size: "",
     pages: "",
-    link: ""
+    link: "",
+    image: ""
   }]
   $('table.c > tbody > tr').each((i, el) => {
     const container: scrapedData = {
@@ -57,68 +71,74 @@ const getRecent = async () => {
       format: "",
       size: "",
       pages: "",
-      link: ""
+      link: "",
+      image: ""
     }
     $(el.children).each((i, el) => {
       if($(el).text() === "\n\t\t\t\t"){
-        // if we can calculate the i's in which new line tab accurs we can do simple arithmatics to avoid problems.
-        // the i's indeed do apear at the same area, switch case with simple arithmatics can be implmented.
-        console.log(i)
         return
       }
-      if(container.id === ""){
-        container.id = $(el).text();
-      }else if(container.author === ""){
-        container.author = $(el).text();
-      }else if(container.title === ""){
-        container.title = $(el).text();
-      }else if(container.year === ""){
-        container.year = $(el).text();
-      }else if(container.publisher === ""){
-        container.publisher = $(el).text();
-      }else if(container.pages === ""){
-        container.pages = $(el).text();
-      }else if(container.language === ""){
-        container.language = $(el).text();
-      }else if(container.size === ""){
-        container.size = $(el).text();
-      }else if(container.format === ""){
-        container.format = $(el).text();
-      }else{
-        return
-      }
-      /*switch(i){
+      switch(i){
         case 0:
           container.id = $(el).text();
           break;
-        case 1:
+        case 2:
           container.author = $(el).text();
           break;
-        case 2:
-          container.title = $(el).text();
-          break;
-        case 3:
-          container.publisher = $(el).text();
-          break;
         case 4:
-          container.year = $(el).text();
-          break;
-        case 5:
-          container.pages = $(el).text();
+          let is = false;
+          let potLink: string = ""
+          $(el).children().each((i, el) => {
+            if(is){
+              return
+            }
+            if($(el).attr('href')?.at(0) === 'b'){
+              is = true
+              potLink = $(el).attr('href') || ""
+            }
+          })
+          let realLink: string = ""
+          for(let i =0; i < potLink.length; i++){
+            if(potLink![i] === 'm' && potLink![i+1] === 'd' && potLink![i+2] === '5' && potLink![i+3] === '='){
+              realLink = potLink!.substring(i+4, potLink!.length)
+              break;
+            }
+          }
+          container.title = $(el).text()
+          container.link = `${libraryDomain}main/${realLink}`
           break;
         case 6:
-          container.language = $(el).text();
-          break;
-        case 7:
-          container.size = $(el).text();
+          container.publisher = $(el).text();
           break;
         case 8:
+          container.year = $(el).text();
+          break;
+        case 10:
+          container.pages = $(el).text();
+          break;
+        case 12:
+          container.language = $(el).text();
+          break;
+        case 14:
+          container.size = $(el).text();
+          break;
+        case 16:
           container.format = $(el).text();
           break;
-      }*/
+      }
     })
     recent[i] = container
   })
+  // future insight: maybe you fill all the nessary data with the library.lol page instead of libgen
+  recent.shift()
+
+  for(let i = 0; i < recent.length; i++){
+    await axios.get(recent[i].link).then((data) => {
+      const $ = cheerio.load(data.data);
+      recent[i].image = `${libraryDomain.substring(0,libraryDomain.length-1)}${$('img').attr('src')}` || ""
+      recent[i].link = $('h2 > a').attr('href') || ""
+    })
+  }
   return recent
 }
 
