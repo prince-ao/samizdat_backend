@@ -3,6 +3,7 @@ import recent from './recent/recent'
 import {graphqlHTTP} from 'express-graphql'
 import root from './graphql/resolver';
 import schema from './graphql/schema';
+import RecentCache from './recent/utils';
 
 const app = express();
 const PORT = "8081"
@@ -22,5 +23,8 @@ app.use('/graphql', graphqlHTTP({
 }))
 
 app.listen(PORT, () => {
+  setInterval(async () => {
+    await RecentCache();
+  }, 1800000)
   console.log(`listening on ${PORT}...`)
 })

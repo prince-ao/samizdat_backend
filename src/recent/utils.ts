@@ -2,6 +2,8 @@ import axios from "axios";
 import cheerio from "cheerio";
 import net from 'net';
 import http from 'http'
+import fs from 'fs'
+import path from 'path'
 
 export interface scrapedData {
   id: string
@@ -35,13 +37,6 @@ const getPage: () => Promise<any> = async () => {
     }
     i++
   }while(1);
-}
-
-const wasteOfTime = (c:number) => {
-  let a =0;
-  for(let i = 0; i < c; i++){
-    a += i;
-  }
 }
 
 const getRecent = async () => {
@@ -107,8 +102,8 @@ const getRecent = async () => {
           container.title = $(el).text()
           container.link = `${libraryDomain}main/${realLink}`
           break;
-        case 6:
-          container.publisher = $(el).text();
+         case 6:
+           container.publisher = $(el).text();
           break;
         case 8:
           container.year = $(el).text();
@@ -132,7 +127,7 @@ const getRecent = async () => {
   // future insight: maybe you fill all the nessary data with the library.lol page instead of libgen
   recent.shift()
 
-  for(let i = 0; i < recent.length; i++){
+  for(let i = 0; i < recent.length-4; i++){
     await axios.get(recent[i].link).then((data) => {
       const $ = cheerio.load(data.data);
       recent[i].image = `${libraryDomain.substring(0,libraryDomain.length-1)}${$('img').attr('src')}` || ""
@@ -142,4 +137,17 @@ const getRecent = async () => {
   return recent
 }
 
-export default getRecent
+const RecentCache = async () => {
+  console.log("it was called");
+  let avar: scrapedData[] = await getRecent()
+  let stringAvar = JSON.stringify(avar);
+  console.log(stringAvar);
+  console.log("out of the call");
+  if(!fs.existsSync(path.join(__dirname, "/../../data"))){
+    fs.mkdirSync(path.join(__dirname, "/../../data"))
+  }
+  fs.writeFileSync(path.join(__dirname, "/../../data/recent.json"), stringAvar, {flag: 'w+'})
+  console.log("created");
+}
+
+export default RecentCache
