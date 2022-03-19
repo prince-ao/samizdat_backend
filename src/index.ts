@@ -25,6 +25,6 @@ app.use('/graphql', graphqlHTTP({
 app.listen(PORT, () => {
   setInterval(async () => {
     await RecentCache();
-  }, 1800000)
+  }, 1800_000)
   console.log(`listening on ${PORT}...`)
 })

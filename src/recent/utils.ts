@@ -16,7 +16,9 @@ export interface scrapedData {
   size: string;
   pages: string;
   link: string;
-  image: string
+  image: string;
+  description: string;
+  isbm: string
 }
 
 const domain = "http://libgen"
@@ -53,7 +55,9 @@ const getRecent = async () => {
     size: "",
     pages: "",
     link: "",
-    image: ""
+    image: "",
+    description: "",
+    isbm: ""
   }]
   $('table.c > tbody > tr').each((i, el) => {
     const container: scrapedData = {
@@ -67,7 +71,9 @@ const getRecent = async () => {
       size: "",
       pages: "",
       link: "",
-      image: ""
+      image: "",
+      description: "",
+      isbm: ""
     }
     $(el.children).each((i, el) => {
       if($(el).text() === "\n\t\t\t\t"){
@@ -127,11 +133,19 @@ const getRecent = async () => {
   // future insight: maybe you fill all the nessary data with the library.lol page instead of libgen
   recent.shift()
 
-  for(let i = 0; i < recent.length-4; i++){
+  for(let i = 0; i < recent.length; i++){
     await axios.get(recent[i].link).then((data) => {
       const $ = cheerio.load(data.data);
       recent[i].image = `${libraryDomain.substring(0,libraryDomain.length-1)}${$('img').attr('src')}` || ""
       recent[i].link = $('h2 > a').attr('href') || ""
+      // console.log($('#info > div:eq(1)').text())
+      // console.log($('div#info > div:eq(1)').text())
+      // console.log($('div:eq(1) > div:eq(1)').text())
+      // console.log($('#info > div:eq(0)').text())
+      // console.log($('#info > div:eq(2)').text())
+      recent[i].description = $('#info > div:eq(2)').text()
+      recent[i].title = $('h1').text()
+      recent[i].isbm = $('p:eq(2)').text()
     })
   }
   return recent
