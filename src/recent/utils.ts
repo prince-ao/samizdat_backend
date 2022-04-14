@@ -1,7 +1,5 @@
 import axios from "axios";
 import cheerio from "cheerio";
-import net from 'net';
-import http from 'http'
 import fs from 'fs'
 import path from 'path'
 
@@ -22,17 +20,17 @@ export interface scrapedData {
 }
 
 const domain = "http://libgen"
-const libraryDomain = "http://library.lol/"
+export const libraryDomain = "http://library.lol/"
 const websites = [`${domain}.rs/`, `${domain}.is/`, `${domain}.st/`]
 
 const getPage: () => Promise<any> = async () => {
   let i = 0
   do{
     try{
-      const response = await axios.get(`${websites[i]}search.php?mode=last`)
+      const response = await axios.get(`${websites[i]}search.php?mode=last&page=1`)
       if(response.status < 400) return response.data
     }catch(e){
-      console.log(`there is an error with ${websites[i]}`)
+      console.log(`there is an error with ${websites[i]}\n`+e)
     }
     if(i === 3){
       return "No Data"
@@ -43,6 +41,9 @@ const getPage: () => Promise<any> = async () => {
 
 const getRecent = async () => {
   const data = await getPage();
+  if(data === "No Data"){
+    return []
+  }
   const $ = cheerio.load(data)
   const recent: [scrapedData] = [{
     id: "",
@@ -130,7 +131,6 @@ const getRecent = async () => {
     })
     recent[i] = container
   })
-  // future insight: maybe you fill all the nessary data with the library.lol page instead of libgen
   recent.shift()
 
   for(let i = 0; i < recent.length; i++){
@@ -138,11 +138,6 @@ const getRecent = async () => {
       const $ = cheerio.load(data.data);
       recent[i].image = `${libraryDomain.substring(0,libraryDomain.length-1)}${$('img').attr('src')}` || ""
       recent[i].link = $('h2 > a').attr('href') || ""
-      // console.log($('#info > div:eq(1)').text())
-      // console.log($('div#info > div:eq(1)').text())
-      // console.log($('div:eq(1) > div:eq(1)').text())
-      // console.log($('#info > div:eq(0)').text())
-      // console.log($('#info > div:eq(2)').text())
       recent[i].description = $('#info > div:eq(2)').text()
       recent[i].title = $('h1').text()
       recent[i].isbm = $('p:eq(2)').text()
@@ -152,16 +147,15 @@ const getRecent = async () => {
 }
 
 const RecentCache = async () => {
-  console.log("it was called");
   let avar: scrapedData[] = await getRecent()
   let stringAvar = JSON.stringify(avar);
-  console.log(stringAvar);
-  console.log("out of the call");
   if(!fs.existsSync(path.join(__dirname, "/../../data"))){
     fs.mkdirSync(path.join(__dirname, "/../../data"))
   }
-  fs.writeFileSync(path.join(__dirname, "/../../data/recent.json"), stringAvar, {flag: 'w+'})
-  console.log("created");
+  if(stringAvar.length != 0){
+    fs.writeFileSync(path.join(__dirname, `/../../data/recent.json`), stringAvar, {flag: 'w+'})
+    console.log("saved")
+  }
 }
 
 export default RecentCache
